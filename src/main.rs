@@ -9,14 +9,10 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, Sample, SizedSample};
 use crossbeam::channel::RecvError;
 use deepgram::transcription::live::{Alternatives, Channel, Word as LiveWord};
+use deepgram::transcription::prerecorded::audio_source::AudioSource;
+use deepgram::transcription::prerecorded::options::{Language, Options};
 use deepgram::transcription::prerecorded::response::Word as PrerecordedWord;
-use deepgram::{
-	transcription::prerecorded::{
-		audio_source::AudioSource,
-		options::{Language, Options},
-	},
-	Deepgram, DeepgramError,
-};
+use deepgram::{Deepgram, DeepgramError};
 use egui::text::LayoutJob;
 use egui::*;
 use egui_node_graph2::*;
@@ -29,6 +25,7 @@ use poll_promise::Promise;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 use std::{env, string, thread};
@@ -59,6 +56,8 @@ impl Word {
 		}
 	}
 }
+
+static PLAY: AtomicBool = AtomicBool::new(false);
 
 static TRANSCRIPT: Lazy<Mutex<Vec<Option<LiveWord>>>> = Lazy::new(Default::default);
 static TRANSCRIPT_FINAL: Lazy<Mutex<Vec<Option<Word>>>> = Lazy::new(Default::default);
@@ -353,6 +352,14 @@ impl MyThings for Ui {
 
 impl eframe::App for App {
 	fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+		ctx.input(|i| {
+			if i.key_down(Key::Space) {
+				PLAY.store(true, Ordering::Relaxed);
+			} else {
+				PLAY.store(false, Ordering::Relaxed);
+			}
+		});
+
 		SidePanel::left("left_panel").show(ctx, |ui| {
 			ui.label(option_env!("BUILD_ID").unwrap_or("DEV"));
 		});
@@ -640,7 +647,8 @@ pub(crate) async fn run_openai(
 	transcript: String,
 	callback: impl Fn(&String) + Send + 'static,
 ) -> Result<(), Box<dyn std::error::Error>> {
-	use async_openai::{types::CreateChatCompletionRequestArgs, Client};
+	use async_openai::types::CreateChatCompletionRequestArgs;
+	use async_openai::Client;
 	use futures::StreamExt;
 
 	let client = Client::with_config(
@@ -713,7 +721,8 @@ pub(crate) async fn run_openai_completion(
 	prompt: String,
 	callback: impl Fn(&String) + Send + 'static,
 ) -> Result<(), Box<dyn std::error::Error>> {
-	use async_openai::{types::CreateCompletionRequestArgs, Client};
+	use async_openai::types::CreateCompletionRequestArgs;
+	use async_openai::Client;
 	use futures::StreamExt;
 
 	let client = Client::with_config(
@@ -1504,7 +1513,7 @@ where
 		waveform: Waveform::Sine,
 		sample_rate: config.sample_rate.0 as f32,
 		current_sample_index: 0.0,
-		frequency_hz: 440.0,
+		frequency_hz: 55.,
 		freeverb: Freeverb::new(44100),
 	};
 
@@ -1517,18 +1526,18 @@ where
 		config,
 		move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
 			// for 0-1s play sine, 1-2s play square, 2-3s play saw, 3-4s play triangle_wave
-			let time_since_start = std::time::Instant::now().duration_since(time_at_start).as_secs_f32();
-			if time_since_start < 1.0 {
-				oscillator.set_waveform(Waveform::Sine);
-			} else if time_since_start < 2.0 {
-				oscillator.set_waveform(Waveform::Triangle);
-			} else if time_since_start < 3.0 {
-				oscillator.set_waveform(Waveform::Square);
-			} else if time_since_start < 4.0 {
-				oscillator.set_waveform(Waveform::Saw);
-			} else {
-				oscillator.set_waveform(Waveform::Sine);
-			}
+			// let time_since_start = std::time::Instant::now().duration_since(time_at_start).as_secs_f32();
+			// if time_since_start < 1.0 {
+			// 	oscillator.set_waveform(Waveform::Sine);
+			// } else if time_since_start < 2.0 {
+			// 	oscillator.set_waveform(Waveform::Triangle);
+			// } else if time_since_start < 3.0 {
+			// 	oscillator.set_waveform(Waveform::Square);
+			// } else if time_since_start < 4.0 {
+			oscillator.set_waveform(Waveform::Saw);
+			// } else {
+			// 	oscillator.set_waveform(Waveform::Sine);
+			// }
 			process_frame(output, &mut oscillator, num_channels)
 		},
 		err_fn,
@@ -1545,9 +1554,14 @@ fn process_frame<SampleType>(
 ) where
 	SampleType: Sample + FromSample<f32>,
 {
+	let play = PLAY.load(Ordering::Relaxed);
+
 	for frame in output.chunks_mut(num_channels) {
 		let sample = oscillator.tick();
-		let verbed_sample = oscillator.freeverb.tick((sample.into(), sample.into()));
+
+		let verbed_sample =
+			oscillator.freeverb.tick(if play { (sample.into(), sample.into()) } else { (0., 0.) });
+		// let verbed_sample = oscillator.freeverb.tick();
 
 		// let value: SampleType = SampleType::from_sample(oscillator.tick());
 
