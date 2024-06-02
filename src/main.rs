@@ -20,6 +20,7 @@ use deepgram::{
 use egui::text::LayoutJob;
 use egui::*;
 use egui_node_graph2::*;
+use freeverb::Freeverb;
 use futures::channel::mpsc::{self, Receiver, Sender};
 use futures::stream::StreamExt as _;
 use futures::SinkExt;
@@ -1396,6 +1397,7 @@ pub struct Oscillator {
 	pub waveform: Waveform,
 	pub current_sample_index: f32,
 	pub frequency_hz: f32,
+	pub freeverb: Freeverb,
 }
 
 impl Oscillator {
@@ -1503,7 +1505,9 @@ where
 		sample_rate: config.sample_rate.0 as f32,
 		current_sample_index: 0.0,
 		frequency_hz: 440.0,
+		freeverb: Freeverb::new(44100),
 	};
+
 	let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
 	let time_at_start = std::time::Instant::now();
@@ -1542,11 +1546,16 @@ fn process_frame<SampleType>(
 	SampleType: Sample + FromSample<f32>,
 {
 	for frame in output.chunks_mut(num_channels) {
-		let value: SampleType = SampleType::from_sample(oscillator.tick());
+		let sample = oscillator.tick();
+		let verbed_sample = oscillator.freeverb.tick((sample.into(), sample.into()));
 
+		// let value: SampleType = SampleType::from_sample(oscillator.tick());
+
+		frame[0] = SampleType::from_sample(verbed_sample.0 as f32);
+		frame[1] = SampleType::from_sample(verbed_sample.1 as f32);
 		// copy the same value to all channels
-		for sample in frame.iter_mut() {
-			*sample = value;
-		}
+		// for sample in frame.iter_mut() {
+		// 	*sample = value;
+		// }
 	}
 }
