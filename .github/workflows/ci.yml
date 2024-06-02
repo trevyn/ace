@@ -62,19 +62,19 @@ jobs:
       - run: ls
         working-directory: target/release
 
-      - run: mv target/release/brace brace
+      - run: mv target/release/ace ace
         if: ${{ matrix.os != 'windows-latest' }}
 
-      - run: mv target/release/brace.exe brace
+      - run: mv target/release/ace.exe ace
         if: ${{ matrix.os == 'windows-latest' }}
 
       - uses: actions/upload-artifact@v4
         if: ${{ matrix.rust == 'stable' }}
         with:
           name: ${{ matrix.os }}
-          path: brace
+          path: ace
 
-      # - run: zip -9 brace.zip brace
+      # - run: zip -9 ace.zip ace
   release:
     permissions:
       contents: write
@@ -90,9 +90,9 @@ jobs:
       - run: echo "BUILD_ID=$(cat build_id/build_id)" >> $GITHUB_ENV
 
       - run: |
-          mv macos-latest/brace brace
-          mv windows-latest/brace brace.exe
+          mv macos-latest/ace ace
+          mv windows-latest/ace ace.exe
 
-      - run: gh release create ${{ env.BUILD_ID }} --target ${{ github.sha }} --generate-notes brace brace.exe
+      - run: gh release create ${{ env.BUILD_ID }} --target ${{ github.sha }} --generate-notes ace ace.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -20,7 +20,7 @@ pub(crate) async fn self_update() -> Result<(), Box<dyn std::error::Error>> {
 	let res = reqwest::Client::builder()
 		.redirect(reqwest::redirect::Policy::none())
 		.build()?
-		.get("https://github.com/trevyn/brace/releases/latest/download/brace")
+		.get("https://github.com/trevyn/ace/releases/latest/download/ace")
 		.send()
 		.await?;
 
