@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
         rust: [stable, beta]
 
     steps:
@@ -90,7 +90,7 @@ jobs:
       - run: echo "BUILD_ID=$(cat build_id/build_id)" >> $GITHUB_ENV
 
       - run: |
-          mv macos-12/ace ace
+          mv macos-latest/ace ace
           mv windows-latest/ace ace.exe
 
       - run: gh release create ${{ env.BUILD_ID }} --target ${{ github.sha }} --generate-notes ace ace.exe

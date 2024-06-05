@@ -51,6 +51,8 @@ codegen-units = 1
 lto = true
 
 [patch.crates-io]
+tetra = {git = "https://github.com/17cupsofcoffee/tetra", branch = "main"}
+
 # If you want to use the bleeding edge version of egui and eframe:
 # egui = { git = "https://github.com/emilk/egui", branch = "master" }
 # eframe = { git = "https://github.com/emilk/egui", branch = "master" }
