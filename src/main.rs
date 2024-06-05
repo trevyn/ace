@@ -37,6 +37,7 @@ use turbosql::*;
 mod audiofile;
 mod self_update;
 mod session;
+mod syntax_highlighting;
 
 enum Word {
 	Live(LiveWord),
@@ -482,8 +483,8 @@ fn syntax_highlighting(
 ) -> Option<ColoredText> {
 	let extension_and_rest: Vec<&str> = response.url.rsplitn(2, '.').collect();
 	let extension = extension_and_rest.first()?;
-	let theme = egui_extras::syntax_highlighting::CodeTheme::from_style(&ctx.style());
-	Some(ColoredText(egui_extras::syntax_highlighting::highlight(ctx, &theme, text, extension)))
+	let theme = syntax_highlighting::CodeTheme::from_style(&ctx.style());
+	Some(ColoredText(syntax_highlighting::highlight(ctx, &theme, text, extension)))
 }
 
 struct ColoredText(text::LayoutJob);
@@ -554,7 +555,7 @@ impl egui_tetra2::State<Box<dyn std::error::Error>> for GameState {
 		egui_ctx: &egui::Context,
 	) -> Result<(), Box<dyn std::error::Error>> {
 		egui::Window::new("Custom Shader").show(egui_ctx, |ui| {
-			let mut theme = egui_extras::syntax_highlighting::CodeTheme::from_memory(ui.ctx());
+			let mut theme = syntax_highlighting::CodeTheme::from_memory(ui.ctx());
 			ui.collapsing("Theme", |ui| {
 				ui.group(|ui| {
 					theme.ui(ui);
@@ -565,7 +566,7 @@ impl egui_tetra2::State<Box<dyn std::error::Error>> for GameState {
 			ui.label(&self.shader_result);
 
 			let mut layouter = |ui: &egui::Ui, string: &str, wrap_width: f32| {
-				let mut layout_job = egui_extras::syntax_highlighting::highlight(ui.ctx(), &theme, string, "c");
+				let mut layout_job = syntax_highlighting::highlight(ui.ctx(), &theme, string, "glsl");
 				layout_job.wrap.max_width = wrap_width;
 				ui.fonts(|f| f.layout_job(layout_job))
 			};
