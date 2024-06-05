@@ -8,11 +8,6 @@ use bytes::{BufMut, Bytes, BytesMut};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, Sample, SizedSample};
 use crossbeam::channel::RecvError;
-use deepgram::transcription::live::{Alternatives, Channel, Word as LiveWord};
-use deepgram::transcription::prerecorded::audio_source::AudioSource;
-use deepgram::transcription::prerecorded::options::{Language, Options};
-use deepgram::transcription::prerecorded::response::Word as PrerecordedWord;
-use deepgram::{Deepgram, DeepgramError};
 use egui::text::LayoutJob;
 use egui::*;
 use egui_node_graph2::*;
@@ -39,30 +34,8 @@ mod self_update;
 mod session;
 mod syntax_highlighting;
 
-enum Word {
-	Live(LiveWord),
-	Prerecorded(PrerecordedWord),
-}
-
-impl Word {
-	fn speaker(&self) -> usize {
-		match self {
-			Word::Live(word) => word.speaker as usize,
-			Word::Prerecorded(word) => word.speaker.unwrap(),
-		}
-	}
-	fn word(&self) -> &str {
-		match self {
-			Word::Live(word) => &word.word,
-			Word::Prerecorded(word) => &word.word,
-		}
-	}
-}
-
 static PLAY: AtomicBool = AtomicBool::new(false);
 
-static TRANSCRIPT: Lazy<Mutex<Vec<Option<LiveWord>>>> = Lazy::new(Default::default);
-static TRANSCRIPT_FINAL: Lazy<Mutex<Vec<Option<Word>>>> = Lazy::new(Default::default);
 static DURATION: Lazy<Mutex<f64>> = Lazy::new(Default::default);
 static COMPLETION: Lazy<Mutex<String>> = Lazy::new(Default::default);
 static COMPLETION_PROMPT: Lazy<Mutex<String>> = Lazy::new(|| {
@@ -219,33 +192,6 @@ pub struct App {
 }
 
 impl App {
-	fn get_transcript(&self) -> String {
-		let mut transcript: String = String::new();
-
-		let words = TRANSCRIPT_FINAL.lock().unwrap();
-
-		let lines = words.split(|word| word.is_none());
-
-		for line in lines {
-			let mut current_speaker = 100;
-
-			for word in line {
-				if let Some(word) = word {
-					if word.speaker() != current_speaker {
-						current_speaker = word.speaker();
-						transcript.push_str(&format!(
-							"\n[{}]: ",
-							self.speaker_names.get(current_speaker).unwrap_or(&String::new())
-						));
-					}
-					transcript.push_str(&format!("{} ", word.word()));
-				}
-			}
-		}
-		transcript.push('\n');
-		transcript
-	}
-
 	pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
 		cc.egui_ctx.set_visuals(egui::style::Visuals::dark());
 		cc.egui_ctx.style_mut(|s| s.visuals.override_text_color = Some(Color32::WHITE));
