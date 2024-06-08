@@ -486,11 +486,30 @@ impl GameState {
 }
 
 impl egui_tetra2::State<Box<dyn std::error::Error>> for GameState {
-	fn update(
+	fn event(
 		&mut self,
 		_ctx: &mut tetra::Context,
 		_egui_ctx: &egui::Context,
+		event: tetra::Event,
 	) -> Result<(), Box<dyn std::error::Error>> {
+		// only trigger on event() -- this lets egui capture the press if it wants to.
+		// release happens unconditionally in update()
+		if let tetra::Event::KeyPressed { key: tetra::input::Key::Space } = &event {
+			PLAY.store(true, Ordering::Relaxed);
+		}
+
+		Ok(())
+	}
+
+	fn update(
+		&mut self,
+		ctx: &mut tetra::Context,
+		_egui_ctx: &egui::Context,
+	) -> Result<(), Box<dyn std::error::Error>> {
+		if !tetra::input::is_key_down(ctx, tetra::input::Key::Space) {
+			PLAY.store(false, Ordering::Relaxed);
+		}
+
 		self.timer += 1.0;
 		Ok(())
 	}
