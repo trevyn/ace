@@ -3,21 +3,20 @@ edition = "2021"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
 name = "ace"
 publish = false
-rust-version = "1.72"
 version = "0.1.0"
 
 [dependencies]
 anyhow = "1"
-async-openai = "0.21"
+async-openai = "0.23"
 byteorder = "1"
 bytes = "1"
 cpal = "0.15"
 crossbeam = "0.8"
-eframe = {version = "0.27", default-features = false, features = ["default_fonts", "glow", "persistence"]}
-egui = "0.27"
-egui-tetra2 = {git = "https://github.com/trevyn/egui-tetra2", branch = "main"}
-egui_extras = {version = "0.27", features = ["image"]}
-egui_node_graph2 = "0.5"
+eframe = {version = "0.28", default-features = false, features = ["default_fonts", "glow", "persistence"]}
+egui = "0.28"
+egui-tetra2 = "0.5"
+egui_extras = {version = "0.28", features = ["image"]}
+egui_node_graph2 = "0.6"
 ehttp = "0.5"
 env_logger = "0.11"
 freeverb = "0.1"
@@ -37,7 +36,7 @@ syntect = {version = "5", default-features = false, features = ["default-fancy"]
 tetra = {version = "0.8", default-features = false, features = ["sdl2_bundled", "sdl2_static_link"]}
 tokio = {version = "1", features = ["full"]}
 tracked = "0.5"
-turbosql = "0.10"
+turbosql = "0.11"
 
 # Optimize all dependencies even in debug builds:
 [profile.dev.package."*"]
